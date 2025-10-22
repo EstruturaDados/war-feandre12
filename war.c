@@ -19,16 +19,22 @@ void cadastrarTerritorios(struct Territorio *territorios, int total) {
 
         printf("Nome: ");
         fgets(territorios[i].nome, sizeof(territorios[i].nome), stdin);
-        territorios[i].nome[strcspn(territorios[i].nome, "\n")] = '\0'; // remove o '\n'
+        territorios[i].nome[strcspn(territorios[i].nome, "\n")] = '\0';
 
         printf("Cor do Exército: ");
         fgets(territorios[i].corExercito, sizeof(territorios[i].corExercito), stdin);
         territorios[i].corExercito[strcspn(territorios[i].corExercito, "\n")] = '\0';
 
-        printf("Número de Tropas: ");
-        scanf("%d", &territorios[i].numeroTropas);
-        getchar(); // consome o '\n' deixado pelo scanf
+        // Validação do número de tropas
+        do {
+            printf("Número de Tropas (mínimo 1): ");
+            scanf("%d", &territorios[i].numeroTropas);
+            if (territorios[i].numeroTropas < 1) {
+                printf("Valor inválido! Digite novamente.\n");
+            }
+        } while (territorios[i].numeroTropas < 1);
 
+        getchar(); // limpa o buffer
         printf("\n");
     }
 }
@@ -47,7 +53,14 @@ void exibirMapa(struct Territorio *territorios, int total) {
 
 // Função que simula uma batalha entre dois territórios
 void simularBatalha(struct Territorio *territorios, int atacante, int defensor) {
-    // Sorteia os dados de ataque e defesa (valores de 1 a 6)
+    // Impede ataques se o atacante tiver 1 tropa ou menos
+    if (territorios[atacante].numeroTropas <= 1) {
+        printf("\nO território %s não tem tropas suficientes para atacar!\n\n",
+               territorios[atacante].nome);
+        return;
+    }
+
+    // Sorteia os dados (1 a 6)
     int dadoAtaque = rand() % 6 + 1;
     int dadoDefesa = rand() % 6 + 1;
 
@@ -60,36 +73,36 @@ void simularBatalha(struct Territorio *territorios, int atacante, int defensor) 
         printf("\nO atacante venceu a rodada!\n");
         territorios[defensor].numeroTropas--;
 
-        // Se o defensor perdeu todas as tropas, o território é conquistado
         if (territorios[defensor].numeroTropas <= 0) {
             printf("%s foi conquistado por %s!\n",
                    territorios[defensor].nome,
                    territorios[atacante].nome);
 
-            // Transfere a cor do exército para indicar a conquista
+            // Transfere a cor e reinicia as tropas
             strcpy(territorios[defensor].corExercito, territorios[atacante].corExercito);
-            territorios[defensor].numeroTropas = 1; // começa com 1 tropa mínima
-            territorios[atacante].numeroTropas--;   // atacante envia uma tropa para ocupar
+            territorios[defensor].numeroTropas = 1;
+            territorios[atacante].numeroTropas--;
         }
     } else {
         printf("\nO defensor resistiu ao ataque!\n");
-        territorios[atacante].numeroTropas--; // atacante perde uma tropa
+        territorios[atacante].numeroTropas--;
     }
+
+    printf("\n");
 }
 
 int main() {
-    srand(time(NULL)); // inicializa o gerador de números aleatórios
+    srand(time(NULL)); // Inicializa aleatoriedade
 
     int totalTerritorios = 5;
 
-    // Alocação dinâmica de memória usando calloc (inicializa com zero)
+    // Alocação dinâmica
     struct Territorio *territorios = (struct Territorio *)calloc(totalTerritorios, sizeof(struct Territorio));
     if (territorios == NULL) {
         printf("Erro ao alocar memória!\n");
         return 1;
     }
 
-    // Cadastro inicial dos territórios
     cadastrarTerritorios(territorios, totalTerritorios);
 
     int opcao;
@@ -100,18 +113,17 @@ int main() {
         printf("Escolha o território atacante (1 a %d, 0 para sair): ", totalTerritorios);
         scanf("%d", &opcao);
 
-        if (opcao == 0) break; // sai do jogo
+        if (opcao == 0) break; // Sai do jogo
 
         int atacante = opcao - 1;
 
         printf("Escolha o território defensor (1 a %d): ", totalTerritorios);
         int defensor;
         scanf("%d", &defensor);
-        getchar(); // consome '\n'
-
+        getchar(); // limpa buffer
         defensor--;
 
-        // Verifica se o atacante e defensor são válidos e diferentes
+        // Verifica se as escolhas são válidas
         if (atacante < 0 || atacante >= totalTerritorios ||
             defensor < 0 || defensor >= totalTerritorios ||
             atacante == defensor) {
@@ -122,11 +134,12 @@ int main() {
         // Executa a batalha
         simularBatalha(territorios, atacante, defensor);
 
+        // Exibe o mapa atualizado
+        exibirMapa(territorios, totalTerritorios);
+
     } while (opcao != 0);
 
-    // Libera a memória alocada
     free(territorios);
-
     printf("\nJogo encerrado. Obrigado por jogar!\n");
 
     return 0;
